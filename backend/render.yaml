@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: product-tour-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build && npx prisma generate
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 4000
+      # Use ONE of the following options:
+      # 1) Managed Postgres (recommended): set DATABASE_URL from the Render Postgres add-on
+      # 2) SQLite with persistent disk (demo): uncomment the disk section and set file path
+      - key: DATABASE_URL
+        # value: postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require
+        value: file:./dev.db
+    disk:
+      name: uploads-data
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+
