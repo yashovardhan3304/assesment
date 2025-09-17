@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,32 +23,36 @@ export default function EditorPage() {
 
   // ✅ Check token on mount
   useEffect(() => {
-    const raw = localStorage.getItem("token");
-    if (raw === "dev-bypass-token") {
-      localStorage.removeItem("token");
-    }
+    const checkToken = () => {
+      const raw = localStorage.getItem("token");
+      if (raw === "dev-bypass-token") localStorage.removeItem("token");
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login"); // ✅ SPA-safe redirect
-      return;
-    }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        void router.push("/login"); // SPA-safe redirect, void ensures useEffect returns void
+      }
+    };
+
+    checkToken();
   }, [router]);
 
+  // Add a new step
   const addStep = () =>
     setSteps((s) => [...s, { order: s.length }]);
 
-  const removeStep = (i: number) =>
+  // Remove a step and reorder remaining steps
+  const removeStep = (index: number) =>
     setSteps((s) =>
       s
-        .filter((_, idx) => idx !== i)
-        .map((st, idx) => ({ ...st, order: idx }))
+        .filter((_, i) => i !== index)
+        .map((st, i) => ({ ...st, order: i }))
     );
 
+  // Create tour
   const onCreate = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login");
+      void router.push("/login");
       return;
     }
 
@@ -56,22 +61,26 @@ export default function EditorPage() {
       return;
     }
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tours`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title, description, steps }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tours`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, description, steps }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Failed");
-      return;
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to create tour");
+        return;
+      }
+
+      void router.push("/dashboard");
+    } catch (err: any) {
+      alert(err.message || "Something went wrong");
     }
-
-    router.push("/dashboard");
   };
 
   return (
@@ -104,9 +113,9 @@ export default function EditorPage() {
         </div>
 
         <AnimatePresence>
-          {steps.map((s, idx) => (
+          {steps.map((step, idx) => (
             <motion.div
-              key={s.order}
+              key={step.order}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
@@ -116,11 +125,11 @@ export default function EditorPage() {
                 <input
                   className="flex-1 border rounded p-2"
                   placeholder="Image URL (or use Upload)"
-                  value={s.imageUrl || ""}
+                  value={step.imageUrl || ""}
                   onChange={(e) =>
                     setSteps((arr) =>
-                      arr.map((it, i) =>
-                        i === idx ? { ...it, imageUrl: e.target.value } : it
+                      arr.map((s, i) =>
+                        i === idx ? { ...s, imageUrl: e.target.value } : s
                       )
                     )
                   }
@@ -128,11 +137,11 @@ export default function EditorPage() {
                 <input
                   className="flex-1 border rounded p-2"
                   placeholder="Video URL (optional)"
-                  value={s.videoUrl || ""}
+                  value={step.videoUrl || ""}
                   onChange={(e) =>
                     setSteps((arr) =>
-                      arr.map((it, i) =>
-                        i === idx ? { ...it, videoUrl: e.target.value } : it
+                      arr.map((s, i) =>
+                        i === idx ? { ...s, videoUrl: e.target.value } : s
                       )
                     )
                   }
@@ -143,18 +152,14 @@ export default function EditorPage() {
                 <ImageUploader
                   onUploaded={(url) =>
                     setSteps((arr) =>
-                      arr.map((it, i) =>
-                        i === idx ? { ...it, imageUrl: url } : it
-                      )
+                      arr.map((s, i) => (i === idx ? { ...s, imageUrl: url } : s))
                     )
                   }
                 />
                 <ScreenRecorder
                   onUploaded={(url) =>
                     setSteps((arr) =>
-                      arr.map((it, i) =>
-                        i === idx ? { ...it, videoUrl: url } : it
-                      )
+                      arr.map((s, i) => (i === idx ? { ...s, videoUrl: url } : s))
                     )
                   }
                 />
@@ -163,12 +168,10 @@ export default function EditorPage() {
               <textarea
                 className="w-full border rounded p-2 mt-2"
                 placeholder="Annotation / Text"
-                value={s.text || ""}
+                value={step.text || ""}
                 onChange={(e) =>
                   setSteps((arr) =>
-                    arr.map((it, i) =>
-                      i === idx ? { ...it, text: e.target.value } : it
-                    )
+                    arr.map((s, i) => (i === idx ? { ...s, text: e.target.value } : s))
                   )
                 }
               />
