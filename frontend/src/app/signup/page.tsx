@@ -23,9 +23,14 @@ export default function SignupPage() {
       if (!res.ok) throw new Error(data.error || "Signup failed");
       localStorage.setItem("token", data.token);
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message);
-    }
+  } catch (err: unknown) {
+  if (err instanceof Error) {
+    setError(err.message);
+  } else {
+    setError("Something went wrong");
+  }
+}
+
   };
 
   return (
