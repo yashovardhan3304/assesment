@@ -18,7 +18,11 @@ export default function ScreenRecorder({ onUploaded }: Props) {
   }, [previewUrl]);
 
   const start = async () => {
-    const stream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: true });
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+  video: true,
+  audio: true,
+});
+
     const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
     chunksRef.current = [];
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
